@@ -113,7 +113,7 @@ def binary_loss_array(recon_x, x, z_mu, z_var, z_0, z_k, ldj, beta=1.):
     # TODO: upgrade to newest pytorch version on master branch, there the nn.BCELoss comes with the option
     # reduce, which when set to False, does no sum over batch dimension.
     #bce = - log_bernoulli(x.view(batch_size, -1), recon_x.view(batch_size, -1), dim=1)
-    bce = nn.BCELoss(x, recon_x, reduce=False) ##??
+    bce = nn.BCELoss(recon_x, x, reduce=False) ##??
     # ln p(z_k)  (not averaged)
     log_p_zk = log_normal_standard(z_k, dim=1)
     # ln q(z_0)  (not averaged)
