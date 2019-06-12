@@ -7,6 +7,7 @@ from torch.autograd import Variable
 from utils.distributions import log_normal_diag, log_normal_standard, log_bernoulli
 import torch.nn.functional as F
 
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 def binary_loss_function(recon_x, x, z_mu, z_var, z_0, z_k, ldj, beta=1.):
     """
@@ -113,7 +114,7 @@ def binary_loss_array(recon_x, x, z_mu, z_var, z_0, z_k, ldj, beta=1.):
     # TODO: upgrade to newest pytorch version on master branch, there the nn.BCELoss comes with the option
     # reduce, which when set to False, does no sum over batch dimension.
     #bce = - log_bernoulli(x.view(batch_size, -1), recon_x.view(batch_size, -1), dim=1)
-    bce = nn.BCELoss(x, recon_x reduce=False) ##??
+    bce = nn.BCELoss(x, recon_x, reduce=False) ##??
     # ln p(z_k)  (not averaged)
     log_p_zk = log_normal_standard(z_k, dim=1)
     # ln q(z_0)  (not averaged)
@@ -211,7 +212,7 @@ def nll_loss(input, target, weight=None, size_average=True, ignore_index=-100, r
     """
     dim = input.dim()
     if torch.is_tensor(weight):
-        weight = Variable(weight)
+        weight = Variable(weight).to(device)
     if dim == 2:
         return torch._C._nn.nll_loss(input, target, weight, size_average, ignore_index, reduce)
     elif dim == 4:

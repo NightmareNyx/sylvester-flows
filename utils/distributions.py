@@ -5,13 +5,13 @@ from torch.autograd import Variable
 
 import math
 
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
 MIN_EPSILON = 1e-5
 MAX_EPSILON = 1.-1e-5
 
-PI = Variable(torch.FloatTensor([math.pi]))
+PI = Variable(torch.FloatTensor([math.pi])).to(device)
 PI.requires_grad = False
-if torch.cuda.is_available():
-    PI = PI.cuda()
 
 # N(x | mu, var) = 1/sqrt{2pi var} exp[-1/(2 var) (x-mean)(x-mean)]
 # log N(x| mu, var) = -log sqrt(2pi) -0.5 log var - 0.5 (x-mean)(x-mean)/var
