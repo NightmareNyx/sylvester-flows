@@ -37,13 +37,16 @@ def train(epoch, train_loader, model, opt, args):
         loss, rec, kl, bpd = calculate_loss(x_mean, data, z_mu, z_var, z0, zk, ldj, args, beta=beta)
 
         loss.backward()
-        train_loss[batch_idx] = loss.data[0]
+        # train_loss[batch_idx] = loss.data[0]
+        train_loss[batch_idx] = loss.data.item()
         train_bpd[batch_idx] = bpd
 
         opt.step()
 
-        rec = rec.data[0]
-        kl = kl.data[0]
+        # rec = rec.data[0]
+        # kl = kl.data[0]
+        rec = rec.item()
+        kl = kl.item()
 
         num_data += len(data)
 
@@ -51,7 +54,7 @@ def train(epoch, train_loader, model, opt, args):
             if args.input_type == 'binary':
                 print('Epoch: {:3d} [{:5d}/{:5d} ({:2.0f}%)]  \tLoss: {:11.6f}\trec: {:11.6f}\tkl: {:11.6f}'.format(
                     epoch, num_data, len(train_loader.sampler), 100. * batch_idx / len(train_loader),
-                    loss.data[0], rec, kl))
+                    loss.data.item(), rec, kl))
             else:
                 perc = 100. * batch_idx / len(train_loader)
                 tmp = 'Epoch: {:3d} [{:5d}/{:5d} ({:2.0f}%)] \tLoss: {:11.6f}\tbpd: {:8.6f}'
@@ -78,26 +81,28 @@ def evaluate(data_loader, model, args, testing=False, file=None, epoch=0):
         loss_type = 'elbo'
     else:
         loss_type = 'bpd'
+    
+    with torch.no_grad():
+        for data, _ in data_loader:
+            batch_idx += 1
 
-    for data, _ in data_loader:
-        batch_idx += 1
+            if args.cuda:
+                data = data.cuda()
 
-        if args.cuda:
-            data = data.cuda()
+            data = Variable(data)
+            data = data.view(-1, *args.input_size)
 
-        data = Variable(data, volatile=True)
-        data = data.view(-1, *args.input_size)
+            x_mean, z_mu, z_var, ldj, z0, zk = model(data)
 
-        x_mean, z_mu, z_var, ldj, z0, zk = model(data)
+            batch_loss, rec, kl, batch_bpd = calculate_loss(x_mean, data, z_mu, z_var, z0, zk, ldj, args)
 
-        batch_loss, rec, kl, batch_bpd = calculate_loss(x_mean, data, z_mu, z_var, z0, zk, ldj, args)
+            bpd += batch_bpd
+            # loss += batch_loss.data[0]
+            loss += batch_loss.data.item()
 
-        bpd += batch_bpd
-        loss += batch_loss.data[0]
-
-        # PRINT RECONSTRUCTIONS
-        if batch_idx == 1 and testing is False:
-            plot_reconstructions(data, x_mean, batch_loss, loss_type, epoch, args)
+            # PRINT RECONSTRUCTIONS
+            if batch_idx == 1 and testing is False:
+                plot_reconstructions(data, x_mean, batch_loss, loss_type, epoch, args)
 
     loss /= len(data_loader)
     bpd /= len(data_loader)
